@@ -4,25 +4,23 @@
 #include <windows.h>
 using namespace std;
 
-enum Diet {
+void setCursorPos(int row, int col) {
+    printf("\033[%d;%dH", row, col);
+}
+
+enum class Diet : uint8_t {
     HERBIVORE,
     CARNIVORE,
     OMNIVORE
 };
 
-enum Tier {
+enum class Tier : uint8_t {
     TINY = 1,
     SMALL,
     MEDIUM,
     LARGE,
     ENORMOUS,
 };
-
-/*
-class FileWriter {
-    
-}
-*/
 
 class Creature {
     private: 
@@ -76,6 +74,8 @@ class Creature {
         
     };
 
+// Class to handle age-related attributes.
+// The larger the creature, the slower it'll age.
 class Age {
     private: 
         int age_freq {};
@@ -85,7 +85,25 @@ class Age {
     public:
         Age() = default;
         Age(Tier tier) {
-            age_freq = tier;
+            switch (tier){
+                case Tier::ENORMOUS:
+                    age_freq = 5;
+                    break;
+                case Tier::LARGE:
+                    age_freq = 4;
+                    break;
+                case Tier::MEDIUM:
+                    age_freq = 3;
+                    break;
+                case Tier::SMALL:
+                    age_freq = 2;
+                    break;
+                case Tier::TINY:
+                    age_freq = 1;
+                    break;
+                default:
+                    throw runtime_error("Invalid age tier.");
+            }
         }
 
         void advance_age() {
@@ -118,7 +136,7 @@ class Player {
 
         Player(Creature c) {
             cur_creature = c;
-            health = c.base_health;
+            health = cur_creature.base_health;
             hunger = base_hunger;
             thirst = base_thirst;
             is_alive = true;
@@ -156,6 +174,11 @@ class Player {
 
         void set_creature(Creature c) {
             cur_creature = c;
+            cur_creature = c;
+            health = cur_creature.base_health;
+            weight = cur_creature.adult_weight / 100;
+
+            age = Age(c.tier);
         }
 };
 
@@ -171,7 +194,7 @@ class Loop {
         virtual void process_options(int choice) = 0;
         void start() {
             int choice;
-            if (!running)  running = true;
+            if (!running) running = true;
             while(running) {
                 display_options();
                 cout << ">> ";
@@ -211,31 +234,43 @@ class Menu : public Loop {
         }
 };
 
-class CharacterSelection : public Menu {
+
+
+// For each creature:
+// Size based on, Appearance based on
+vector<Creature> avail_creatures = {
+    Creature("Draconos", Diet::CARNIVORE, 4305, 395, 2500, 3), // Megalonyx, Glyptodon body + Entelodont facial features
+    Creature("Harlikir", Diet::HERBIVORE, 3800, 200, 1500, 2), // Gaur, Barrel body + Bison-like Face
+    Creature("Grandis", Diet::CARNIVORE, 2435, 230, 1100, 4), // Lythronax, Lythronax body plan + Garzapelta osteoderms
+    Creature("Carnagal", Diet::CARNIVORE, 4420, 500, 3000, 4), // Simbakubwa, more furry Simbakubwa
+    Creature("Flikch", Diet::HERBIVORE, 2310, 175, 700, 2), // Large Pig, Binturong + lemur tail.
+};
+
+class CreatureSelection : public Menu {
     private:
         vector<string> get_names(const vector<Creature>& c) {
             vector<string> a;
             for(Creature creature : c) {
                 a.push_back(creature.name);
-                cout << creature.name << "\n";
             }
             return a;
         }
-        
-        // For each creature:
-        // Size based on, Appearance based on
-        vector<Creature> avail_creatures = {
-            Creature("Draconos", Diet::CARNIVORE, 4305, 395, 2500, 3), // Megalonyx, Glyptodon body + Entelodont facial features
-            Creature("Harlikir", Diet::HERBIVORE, 3800, 200, 1500, 2), // Gaur, Barrel body + Bison-like Face
-            Creature("Grandis", Diet::CARNIVORE, 2435, 230, 1100, 4), // Lythronax, Lythronax body plan + Garzapelta osteoderms
-            Creature("Carnagal", Diet::CARNIVORE, 4420, 500, 3000, 4), // Simbakubwa, more furry Simbakubwa
-            Creature("Flikch", Diet::HERBIVORE, 2310, 175, 700, 2), // Large Pig, Binturong + lemur tail.
-        };
+
+        vector<Creature> creatures;
+        Player* playerPtr {};
     public:
-        vector<string> opt = get_names(avail_creatures);
-        CharacterSelection(bool r) : Menu(r, opt) {}
+        CreatureSelection(bool r, vector<Creature> c, Player* plr) : Menu(r, get_names(avail_creatures)) {
+            creatures = c;
+            playerPtr = plr;
+        }
+
         void process_options(int choice) override {
-            cout << "hello";
+            if(choice > creatures.size() || choice <= 0) {
+                cout << "Invalid option.\n";
+                return;
+            }
+            playerPtr->set_creature(creatures[choice-1]);
+            running = false;
         }
 };
 
@@ -249,10 +284,10 @@ class MainMenu : public Menu {
 };
 */
 
-
 int main() {    
-    vector<string> a = {"asdasd", "Aasdasd"};
-    CharacterSelection c(true);
+    Player player {};
+    CreatureSelection c(true, avail_creatures, &player);
     c.start();
+    player.display_stats();
     return 0;
 }
