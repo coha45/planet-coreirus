@@ -4,8 +4,13 @@
 #include <windows.h>
 using namespace std;
 
-void setCursorPos(int row, int col) {
+void set_cursor_pos(int row, int col) {
     printf("\033[%d;%dH", row, col);
+}
+
+string display_bool(bool v) {
+    if (v) return "True";
+    else return "False";
 }
 
 enum class Diet : uint8_t {
@@ -14,6 +19,15 @@ enum class Diet : uint8_t {
     OMNIVORE
 };
 
+inline ostream& operator<<(ostream& os, Diet d) {
+    switch(d) {
+        case Diet::HERBIVORE: os << "Herbivore"; break; 
+        case Diet::CARNIVORE: os << "Carnivore"; break; 
+        case Diet::OMNIVORE: os << "Omnivore"; break;
+        default: os << "This shouldn't happen.";
+    }
+}
+
 enum class Tier : uint8_t {
     TINY = 1,
     SMALL,
@@ -21,6 +35,18 @@ enum class Tier : uint8_t {
     LARGE,
     ENORMOUS,
 };
+
+inline ostream& operator<<(ostream& os, Tier tier) {
+    switch(tier) {
+        case Tier::TINY: os << "Tiny"; break;
+        case Tier::SMALL: os << "Small"; break;
+        case Tier::MEDIUM: os << "Medium"; break;
+        case Tier::LARGE: os << "Large"; break;
+        case Tier::ENORMOUS: os << "Enormous"; break;
+        default: "This shouldn't happen";
+    }
+    return os;
+}
 
 class Creature {
     private: 
@@ -65,11 +91,15 @@ class Creature {
         }
 
         void display_stats() {
-            cout << "Name: " << name << "\n";
-            cout << "Health: " << base_health << "\n";
-            cout << "Attack: " << base_atk << "\n";
-            cout << "Weight (lbs): " << adult_weight << "\n";
-            cout << "Metabolic Rate: " << mtbl_rate << "\n";
+            cout << "SURVIVAL\n";
+            cout << "\tName: " << name << "\n";
+            cout << "\tHealth: " << base_health << "\n";
+            cout << "\tAttack: " << base_atk << "\n";
+            cout << "\tDiet: " << diet_type << "\n";
+            cout << "MULTIPLIERS\n";
+            cout << "\tWeight (lbs): " << adult_weight << "\n";
+            cout << "\tTier: " << tier << "\n";
+            cout << "\tMetabolic Rate: " << mtbl_rate << "\n";
         }
         
     };
@@ -139,7 +169,6 @@ class Player {
             health = cur_creature.base_health;
             hunger = base_hunger;
             thirst = base_thirst;
-            is_alive = true;
             weight = cur_creature.adult_weight / 100;
 
             age = Age(c.tier);
@@ -156,19 +185,22 @@ class Player {
                 health -= 1;
             }
 
-            if (health == 0) {
+            if (health <= 0) {
                 is_alive = false;   
                 cout << "dead\n";
             }
         }
 
         void display_stats() {
-            cout << "Age: " << age.get_age() << "\n";
-            cout << "Health: " << health << "\n";
-            cout << "Hunger: " << hunger << "\n";
-            cout <<"Thirst: " << thirst << "\n";
-            cout <<"Current Weight: " << weight << "\n";
-            cout << "Alive: " << is_alive << "\n";
+            cout << "SURVIVAL STATS\n";
+            cout << "\tStatus: " << display_bool(is_alive) << "\n";
+            cout << "\tHealth: " << health << "\n";
+            cout << "\tHunger: " << hunger << "\n";
+            cout <<"\tThirst: " << thirst << "\n";
+            
+            cout << "CREATURE STATS\n";
+            cout << "\tAge: " << age.get_age() << "\n";
+            cout << "\tCurrent Weight: " << weight << "\n";
             cur_creature.display_stats();
         }
 
@@ -233,8 +265,6 @@ class Menu : public Loop {
             }
         }
 };
-
-
 
 // For each creature:
 // Size based on, Appearance based on
