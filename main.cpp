@@ -36,12 +36,6 @@ enum class Tier : uint8_t {
     ENORMOUS,
 };
 
-/*
-enum Class Biome : uint8_t {
-    
-}
-*/
-
 inline ostream& operator<<(ostream& os, Tier tier) {
     switch(tier) {
         case Tier::TINY: os << "Tiny"; break;
@@ -52,7 +46,15 @@ inline ostream& operator<<(ostream& os, Tier tier) {
         default: "This shouldn't happen";
     }
     return os;
+
 }
+
+
+/*
+enum Class Biome : uint8_t {
+    
+}
+*/
 
 class Creature {
     private: 
@@ -117,10 +119,14 @@ class Age {
         int age_freq {};
         int age {};
         int age_ctr {};
+        int weight {};
+        int weight_gain_rate {};
 
     public:
         Age() = default;
-        Age(Tier tier) {
+        Age(Tier tier, int w, int wgr) {
+            weight = w;
+            weight_gain_rate = wgr;
             switch (tier) {
                 case Tier::ENORMOUS:
                     age_freq = 5;
@@ -146,6 +152,7 @@ class Age {
             age_ctr++;
             if(age_ctr >= age_freq) {
                 age++;
+                weight += weight_gain_rate;
                 age_ctr = 0;
             }
         }
@@ -153,16 +160,38 @@ class Age {
         int get_age() {
             return age;
         }
+        int get_weight() {
+            return weight;
+        }
 };
 
+int rate(Tier tier) {
+    switch (tier) {
+                case Tier::ENORMOUS:
+                    return 5;
+                case Tier::LARGE:
+                    return 4;
+                case Tier::MEDIUM:
+                    return 3;
+                case Tier::SMALL:
+                    return 2;
+                case Tier::TINY:
+                    return 1;
+                default:
+                    throw runtime_error("Invalid age tier.");
+    }
+}
 
 class Player {
     private:
         static inline int base_hunger = 100, base_thirst = 100, base_stamina = 100;
         Creature cur_creature {};
-        Age age {};
+        int age {};
+        int age_rate {};
         int weight {};
+        int weight_gain_rate {};
         int health {};
+        int health_gain_rate {};
         int hunger {};
         int thirst {};
         bool is_alive {};
@@ -177,17 +206,24 @@ class Player {
             thirst = base_thirst;
             is_alive = true;
             
-            // Calculated based on current creature
-            health = cur_creature.base_health;
+            health = cur_creature.base_health / 100;
             weight = cur_creature.adult_weight / 100;
 
-            age = Age(c.tier);
+            // Rates
+            age_rate = rate(cur_creature.tier);
+            weight_gain_rate = cur_creature.adult_weight / 100;
+            health_gain_rate = cur_creature.base_health / 100;
         }
         
         void advance_round() {
             if (!is_alive) return;
             round++;
-            age.advance_age();
+
+            if(round % age_rate == 0) {
+                age++;
+                weight += weight_gain_rate;
+                health += health_gain_rate;
+            }
 
             // Food and hunger loss
             hunger -= cur_creature.mtbl_rate;
@@ -198,10 +234,6 @@ class Player {
             if(hunger == 0 || thirst == 0) {
                 health -= cur_creature.base_health*0.05;
             }
-
-            // Handle Health and Weight gain.
-            // Both are based on age.
-
 
             if (health <= 0) {
                 is_alive = false;   
@@ -214,13 +246,13 @@ class Player {
             cout << "\tRound: " << round << "\n";
 
             cout << "SURVIVAL STATS\n";
-            cout << "\tStatus: " << display_bool(is_alive) << "\n";
+            cout << "\tAlive: " << display_bool(is_alive) << "\n";
             cout << "\tHealth: " << health << "\n";
             cout << "\tHunger: " << hunger << "\n";
             cout <<"\tThirst: " << thirst << "\n";
             
             cout << "CREATURE STATS\n";
-            cout << "\tAge: " << age.get_age() << "\n";
+            cout << "\tAge: " << age << "\n";
             cout << "\tCurrent Weight: " << weight << "\n";
             // cur_creature.display_stats();
         }
@@ -345,10 +377,10 @@ class SaveSelection : public Menu {
 };
 */
 
-/*
 class MainMenu : public Menu {
+
+    
 };
-*/
 
 int main() {    
     Player player {};
