@@ -36,6 +36,12 @@ enum class Tier : uint8_t {
     ENORMOUS,
 };
 
+/*
+enum Class Biome : uint8_t {
+    
+}
+*/
+
 inline ostream& operator<<(ostream& os, Tier tier) {
     switch(tier) {
         case Tier::TINY: os << "Tiny"; break;
@@ -75,6 +81,7 @@ class Creature {
         int adult_weight {};
         int mtbl_rate {};
         Tier tier {};
+        int round {};
 
         Creature() = default;
 
@@ -101,7 +108,6 @@ class Creature {
             cout << "\tTier: " << tier << "\n";
             cout << "\tMetabolic Rate: " << mtbl_rate << "\n";
         }
-        
     };
 
 // Class to handle age-related attributes.
@@ -115,7 +121,7 @@ class Age {
     public:
         Age() = default;
         Age(Tier tier) {
-            switch (tier){
+            switch (tier) {
                 case Tier::ENORMOUS:
                     age_freq = 5;
                     break;
@@ -149,26 +155,30 @@ class Age {
         }
 };
 
+
 class Player {
     private:
         static inline int base_hunger = 100, base_thirst = 100, base_stamina = 100;
         Creature cur_creature {};
-
-    public:
         Age age {};
         int weight {};
         int health {};
         int hunger {};
         int thirst {};
         bool is_alive {};
-        
+        int round {};
+
+    public: 
         Player() = default;
 
         Player(Creature c) {
             cur_creature = c;
-            health = cur_creature.base_health;
             hunger = base_hunger;
             thirst = base_thirst;
+            is_alive = true;
+            
+            // Calculated based on current creature
+            health = cur_creature.base_health;
             weight = cur_creature.adult_weight / 100;
 
             age = Age(c.tier);
@@ -176,14 +186,22 @@ class Player {
         
         void advance_round() {
             if (!is_alive) return;
+            round++;
             age.advance_age();
 
             // Food and hunger loss
             hunger -= cur_creature.mtbl_rate;
             thirst -= cur_creature.mtbl_rate*1.5;
-            if(hunger <= 0 || thirst <= 0) {
-                health -= 1;
+            if (hunger < 0) hunger = 0;
+            if (thirst < 0) thirst = 0;
+
+            if(hunger == 0 || thirst == 0) {
+                health -= cur_creature.base_health*0.05;
             }
+
+            // Handle Health and Weight gain.
+            // Both are based on age.
+
 
             if (health <= 0) {
                 is_alive = false;   
@@ -192,6 +210,9 @@ class Player {
         }
 
         void display_stats() {
+            cout << "SESSION STATS\n";
+            cout << "\tRound: " << round << "\n";
+
             cout << "SURVIVAL STATS\n";
             cout << "\tStatus: " << display_bool(is_alive) << "\n";
             cout << "\tHealth: " << health << "\n";
@@ -201,16 +222,7 @@ class Player {
             cout << "CREATURE STATS\n";
             cout << "\tAge: " << age.get_age() << "\n";
             cout << "\tCurrent Weight: " << weight << "\n";
-            cur_creature.display_stats();
-        }
-
-        void set_creature(Creature c) {
-            cur_creature = c;
-            cur_creature = c;
-            health = cur_creature.base_health;
-            weight = cur_creature.adult_weight / 100;
-
-            age = Age(c.tier);
+            // cur_creature.display_stats();
         }
 };
 
@@ -237,18 +249,42 @@ class Loop {
 };
     
 class Game : public Loop {
+    private:
+        Player* player {};
     public:
         Game() = default;
-        Game(bool r) : Loop(r) {}
-        void display_options() override {
-            
+        Game(bool r, Player* plr) : Loop(r) {
+            player = plr;
         }
+        void display_options() override {
+            player->display_stats();
+            cout << "-----------------------------\n";
+            cout << "1) Roam (Default)\n"; 
+            cout << "2) Hunt/Forage\n"; 
+            cout << "3) Rest\n"; 
+            cout << "4) Sleep\n"; 
+            cout << "5) Quit\n"; 
+        }
+
         void process_options(int choice) override {
-            /*
-            switch (choice) {
+            switch(choice) {
                 case 1:
+                    player->advance_round();
+                    break;
+                case 2:
+                    cout << "Unimplemented\n";
+                    break;
+                case 3:
+                    cout << "Unimplemented\n";
+                    break;
+                case 4:
+                    cout << "Unimplemented\n";
+                    break;
+                case 5:
+                    cout << "Unimplemented\n";
+                    break;
+                default: cout << "Invalid Option.\n";
             }
-            */
         }
 };
 
@@ -299,7 +335,7 @@ class CreatureSelection : public Menu {
                 cout << "Invalid option.\n";
                 return;
             }
-            playerPtr->set_creature(creatures[choice-1]);
+            *playerPtr = Player(creatures[choice-1]);
             running = false;
         }
 };
@@ -318,6 +354,7 @@ int main() {
     Player player {};
     CreatureSelection c(true, avail_creatures, &player);
     c.start();
-    player.display_stats();
+    Game g(false, &player);
+    g.start();
     return 0;
 }
