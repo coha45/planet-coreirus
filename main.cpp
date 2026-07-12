@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdint>
 #include <vector>
+#include <utility>
 #include <windows.h>
 using namespace std;
 
@@ -19,8 +20,8 @@ enum class Diet : uint8_t {
     OMNIVORE
 };
 
-inline ostream& operator<<(ostream& os, Diet d) {
-    switch(d) {
+inline ostream& operator<<(ostream& os, Diet diet) {
+    switch(diet) {
         case Diet::HERBIVORE: os << "Herbivore"; break; 
         case Diet::CARNIVORE: os << "Carnivore"; break; 
         case Diet::OMNIVORE: os << "Omnivore"; break;
@@ -46,15 +47,48 @@ inline ostream& operator<<(ostream& os, Tier tier) {
         default: "This shouldn't happen";
     }
     return os;
-
 }
 
+enum class Biome : uint8_t {
+    RAINFOREST,
+    TUNDRA,
+    DESERT,
+    SWAMP,
+    TEMPERATE_FOREST
+};
+
+inline ostream& operator<<(ostream& os, Biome biome) {
+    switch(biome) {
+        case Biome::RAINFOREST: os << "Rainforest"; break;
+        case Biome::TUNDRA: os << "Tundra"; break;
+        case Biome::DESERT: os << "Desert"; break;
+        case Biome::SWAMP: os << "Swamp"; break;
+        case Biome::TEMPERATE_FOREST: os << "Temperate Forest"; break;
+        default: os << "This shouldn't happen."; break;
+    }
+}
 
 /*
-enum Class Biome : uint8_t {
-    
+enum class Edible : uint8_t {
 }
 */
+
+// Temporary class to handle single-player biomes/location.
+class BiomeHandler {
+    private:
+        Biome current_biome {};
+        int seed {};
+        pair<int, int> player_loc {};
+
+    public:
+        BiomeHandler() {
+            player_loc = { 0, 0 };
+        }
+
+        Biome current() {
+            return current_biome;
+        }
+};
 
 class Creature {
     private: 
@@ -78,12 +112,12 @@ class Creature {
     public:
         string name {};
         Diet diet_type {};
+        Tier tier {};
         int base_health {};
         int base_atk {};
         int adult_weight {};
-        int mtbl_rate {};
-        Tier tier {};
         int round {};
+        int mtbl_rate {};
 
         Creature() = default;
 
@@ -114,6 +148,7 @@ class Creature {
 
 // Class to handle age-related attributes.
 // The larger the creature, the slower it'll age.
+// Currently unused, as there is not really any need to encapsulate these.
 class Age {
     private: 
         int age_freq {};
@@ -236,7 +271,8 @@ class Player {
             }
 
             if (health <= 0) {
-                is_alive = false;   
+                health = 0;  
+                is_alive = false; 
                 cout << "dead\n";
             }
         }
@@ -379,7 +415,6 @@ class SaveSelection : public Menu {
 
 class MainMenu : public Menu {
 
-    
 };
 
 int main() {    
