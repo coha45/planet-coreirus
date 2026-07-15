@@ -14,6 +14,18 @@ string display_bool(bool v) {
     else return "False";
 }
 
+struct Position {
+    int x;
+    int y;
+
+    friend ostream& operator<<(ostream& os, Position pos) {
+        os << "(" << pos.x << ", " << pos.y << ")";
+        return os;
+    }
+};
+
+
+
 enum class Diet : uint8_t {
     HERBIVORE,
     CARNIVORE,
@@ -27,6 +39,7 @@ inline ostream& operator<<(ostream& os, Diet diet) {
         case Diet::OMNIVORE: os << "Omnivore"; break;
         default: os << "This shouldn't happen.";
     }
+    return os;
 }
 
 enum class Tier : uint8_t {
@@ -54,7 +67,8 @@ enum class Biome : uint8_t {
     TUNDRA,
     DESERT,
     SWAMP,
-    TEMPERATE_FOREST
+    TEMPERATE_FOREST,
+    PLAINS
 };
 
 inline ostream& operator<<(ostream& os, Biome biome) {
@@ -64,8 +78,10 @@ inline ostream& operator<<(ostream& os, Biome biome) {
         case Biome::DESERT: os << "Desert"; break;
         case Biome::SWAMP: os << "Swamp"; break;
         case Biome::TEMPERATE_FOREST: os << "Temperate Forest"; break;
+        case Biome::PLAINS: os << "Plains"; break;
         default: os << "This shouldn't happen."; break;
     }
+    return os;
 }
 
 /*
@@ -74,11 +90,12 @@ enum class Edible : uint8_t {
 */
 
 // Temporary class to handle single-player biomes/location.
+// Handles player position + biome specific attributes.
 class BiomeHandler {
     private:
         Biome current_biome {};
         int seed {};
-        pair<int, int> player_loc {};
+        Position player_loc {};
 
     public:
         BiomeHandler() {
@@ -87,6 +104,27 @@ class BiomeHandler {
 
         Biome current() {
             return current_biome;
+        }
+
+        Position get_player_location() {
+            return player_loc;
+        }
+
+        void move(char dir) {
+            switch(dir) {
+                case 'n': player_loc.y++; break;
+                case 's': player_loc.y--; break;
+                case 'e': player_loc.x++; break;
+                case 'w': player_loc.x--; break;
+            }
+            // TODO: Add logic to change biome based on position.
+            // ...
+        }
+
+        void display_location_stats() {
+            cout << "LOCATION DATA:\n";
+            cout << "\tCurrent Position: " << player_loc << "\n";
+            cout << "\tCurrent Biome: " << current_biome << "\n";
         }
 };
 
@@ -118,10 +156,11 @@ class Creature {
         int adult_weight {};
         int round {};
         int mtbl_rate {};
+        Biome native_biome {};
 
         Creature() = default;
 
-        Creature(string n, Diet dt, int bh, int ba, int w, int mtbl_r) {
+        Creature(string n, Diet dt, int bh, int ba, int w, int mtbl_r, Biome nb) {
             name = n;
             diet_type = dt;
             base_health = bh;
@@ -129,6 +168,7 @@ class Creature {
             adult_weight = w;
             mtbl_rate = mtbl_r;
             tier = get_tier(adult_weight);
+            native_biome = nb;
 
             creature_count++;
         }
@@ -287,6 +327,7 @@ class Player {
             cout << "\tHunger: " << hunger << "\n";
             cout <<"\tThirst: " << thirst << "\n";
             
+            
             cout << "CREATURE STATS\n";
             cout << "\tAge: " << age << "\n";
             cout << "\tCurrent Weight: " << weight << "\n";
@@ -319,12 +360,15 @@ class Loop {
 class Game : public Loop {
     private:
         Player* player {};
+        BiomeHandler biome_h {};
     public:
         Game() = default;
         Game(bool r, Player* plr) : Loop(r) {
             player = plr;
+            biome_h = BiomeHandler();
         }
         void display_options() override {
+            biome_h.display_location_stats();
             player->display_stats();
             cout << "-----------------------------\n";
             cout << "1) Roam (Default)\n"; 
@@ -337,6 +381,10 @@ class Game : public Loop {
         void process_options(int choice) override {
             switch(choice) {
                 case 1:
+                    char dir;
+                    cout << "Move (N, S, E, W): ";
+                    cin >> dir;
+                    biome_h.move(dir);
                     player->advance_round();
                     break;
                 case 2:
@@ -373,11 +421,11 @@ class Menu : public Loop {
 // For each creature:
 // Size based on, Appearance based on
 vector<Creature> avail_creatures = {
-    Creature("Draconos", Diet::CARNIVORE, 4305, 395, 2500, 3), // Megalonyx, Glyptodon body + Entelodont facial features
-    Creature("Harlikir", Diet::HERBIVORE, 3800, 200, 1500, 2), // Gaur, Barrel body + Bison-like Face
-    Creature("Grandis", Diet::CARNIVORE, 2435, 230, 1100, 4), // Lythronax, Lythronax body plan + Garzapelta osteoderms
-    Creature("Carnagal", Diet::CARNIVORE, 4420, 500, 3000, 4), // Simbakubwa, more furry Simbakubwa
-    Creature("Flikch", Diet::HERBIVORE, 2310, 175, 700, 2), // Large Pig, Binturong + lemur tail.
+    Creature("Draconos", Diet::CARNIVORE, 4305, 395, 2500, 3, Biome::PLAINS), // Megalonyx, Glyptodon body + Entelodont facial features
+    Creature("Harlikir", Diet::HERBIVORE, 3800, 200, 1500, 2, Biome::TUNDRA), // Gaur, Barrel body + Bison-like Face
+    Creature("Grandis", Diet::CARNIVORE, 2435, 230, 1100, 4, Biome::DESERT), // Lythronax, Lythronax body plan + Garzapelta osteoderms
+    Creature("Carnagal", Diet::CARNIVORE, 4420, 500, 3000, 4, Biome::RAINFOREST), // Simbakubwa, more furry Simbakubwa
+    Creature("Flikch", Diet::HERBIVORE, 2310, 175, 700, 2, Biome::RAINFOREST), // Large Pig, Binturong + lemur tail.
 };
 
 class CreatureSelection : public Menu {
