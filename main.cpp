@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <vector>
 #include <utility>
+#include <unordered_map>
 #include <windows.h>
 using namespace std;
 
@@ -23,8 +24,6 @@ struct Position {
         return os;
     }
 };
-
-
 
 enum class Diet : uint8_t {
     HERBIVORE,
@@ -62,6 +61,37 @@ inline ostream& operator<<(ostream& os, Tier tier) {
     return os;
 }
 
+struct Edible {
+    string name;
+    int hunger_value;
+    int thirst_value = 0;
+};
+
+// Note: Omnivores will share the same item pool as 
+// carnivores and herbivores for each biome.
+// ------------------------------------------------
+//  Edible Items for Carnivores
+Edible bony_fish { "Bony Fish", 3 };
+Edible carcass { "Carcass", 2 };
+Edible small_mammal { "Small Mammal", 5 }; // Placeholders for creatures that may fill similar niches.
+Edible small_reptile { "Small Reptile", 4 };
+Edible medium_reptile { "Medium Reptile", 8 };
+Edible dragon_fly { "Dragon Fly", 1 };
+Edible grasshopper { "Grasshopper", 1 };
+Edible scorpion { "Scorpion", 1 };
+Edible creature { "Creature", 0 }; // Special placeholder for when player encounters an NPC while hunting.
+
+//  Edible Items for Herbivores
+Edible cactus { "Cactus", 1, 2 };
+Edible shrub { "Shrub", 2 };
+Edible fern { "Fern", 2 };
+Edible conifer { "Conifer", 2 };
+Edible grass { "Grass", 1 };
+Edible fruit { "Fruit", 4 };
+Edible seed { "Seed", 3 };
+Edible twig { "Twig", 1 };
+Edible berry { "Berry", 3 };
+
 enum class Biome : uint8_t {
     RAINFOREST,
     TUNDRA,
@@ -84,10 +114,17 @@ inline ostream& operator<<(ostream& os, Biome biome) {
     return os;
 }
 
-/*
-enum class Edible : uint8_t {
-}
-*/
+unordered_map<Biome, vector<Edible>> biome_edibles = {
+    { Biome::RAINFOREST, { small_reptile, small_mammal, scorpion, dragon_fly, conifer } },
+    { Biome::TUNDRA, { twig, berry, grass, small_mammal, carcass } },
+    { Biome::DESERT, { shrub, cactus, scorpion, grasshopper, medium_reptile, small_reptile, carcass} },
+    { Biome::SWAMP, { dragon_fly, shrub, conifer, small_reptile, medium_reptile, small_mammal } },
+    { Biome::TEMPERATE_FOREST, { conifer, twig, berry, small_reptile, small_mammal, carcass } },
+    { Biome::PLAINS, { medium_reptile, small_mammal, carcass, dragon_fly, grasshopper, shrub, fern, grass, fruit, seed, twig, berry } },
+};
+
+
+
 
 // Temporary class to handle single-player biomes/location.
 // Handles player position + biome specific attributes.
@@ -98,12 +135,21 @@ class BiomeHandler {
         Position player_loc {};
 
     public:
-        BiomeHandler() {
+        BiomeHandler() = default;
+        BiomeHandler(Biome initial_biome) {
             player_loc = { 0, 0 };
+            current_biome = initial_biome;
         }
 
         Biome current() {
             return current_biome;
+        }
+        
+        void display_biome_drops() {
+            const vector<Edible>& edible_pool = biome_edibles.at(current_biome);
+            for(const Edible& e : edible_pool) {
+                cout << e.name << ": " << e.hunger_value << "\n";
+            }
         }
 
         Position get_player_location() {
@@ -116,6 +162,7 @@ class BiomeHandler {
                 case 's': player_loc.y--; break;
                 case 'e': player_loc.x++; break;
                 case 'w': player_loc.x--; break;
+                default: cout << "Invalid Option.\n"; break;
             }
             // TODO: Add logic to change biome based on position.
             // ...
@@ -269,6 +316,7 @@ class Player {
         int health_gain_rate {};
         int hunger {};
         int thirst {};
+        int stamina {};
         bool is_alive {};
         int round {};
 
@@ -279,8 +327,8 @@ class Player {
             cur_creature = c;
             hunger = base_hunger;
             thirst = base_thirst;
+            stamina = 100;
             is_alive = true;
-            
             health = cur_creature.base_health / 100;
             weight = cur_creature.adult_weight / 100;
 
@@ -288,6 +336,14 @@ class Player {
             age_rate = rate(cur_creature.tier);
             weight_gain_rate = cur_creature.adult_weight / 100;
             health_gain_rate = cur_creature.base_health / 100;
+        }
+
+        void hunt() {
+            stamina -= 2;
+        }
+
+        Biome get_native_biome() {
+            return cur_creature.native_biome;
         }
         
         void advance_round() {
@@ -326,6 +382,7 @@ class Player {
             cout << "\tHealth: " << health << "\n";
             cout << "\tHunger: " << hunger << "\n";
             cout <<"\tThirst: " << thirst << "\n";
+            cout << "\tStamina: "  << stamina << "\n";
             
             
             cout << "CREATURE STATS\n";
@@ -365,7 +422,7 @@ class Game : public Loop {
         Game() = default;
         Game(bool r, Player* plr) : Loop(r) {
             player = plr;
-            biome_h = BiomeHandler();
+            biome_h = BiomeHandler(player->get_native_biome());
         }
         void display_options() override {
             biome_h.display_location_stats();
@@ -378,6 +435,11 @@ class Game : public Loop {
             cout << "5) Quit\n"; 
         }
 
+        void hunt() {
+            biome_h.display_biome_drops();
+            player->hunt();
+        }
+
         void process_options(int choice) override {
             switch(choice) {
                 case 1:
@@ -385,10 +447,9 @@ class Game : public Loop {
                     cout << "Move (N, S, E, W): ";
                     cin >> dir;
                     biome_h.move(dir);
-                    player->advance_round();
                     break;
                 case 2:
-                    cout << "Unimplemented\n";
+                    hunt();
                     break;
                 case 3:
                     cout << "Unimplemented\n";
@@ -400,6 +461,8 @@ class Game : public Loop {
                     cout << "Unimplemented\n";
                     break;
                 default: cout << "Invalid Option.\n";
+
+                player->advance_round();
             }
         }
 };
