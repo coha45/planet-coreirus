@@ -56,7 +56,7 @@ inline ostream& operator<<(ostream& os, Tier tier) {
         case Tier::MEDIUM: os << "Medium"; break;
         case Tier::LARGE: os << "Large"; break;
         case Tier::ENORMOUS: os << "Enormous"; break;
-        default: "This shouldn't happen";
+        default: os << "This shouldn't happen"; break;
     }
     return os;
 }
@@ -470,9 +470,8 @@ class Game : public Loop {
                     cout << "Unimplemented\n";
                     break;
                 default: cout << "Invalid Option.\n"; break;
-
-                player->advance_round();
             }
+            player->advance_round();
         }
 };
 
@@ -490,16 +489,6 @@ class Menu : public Loop {
         }
 };
 
-// For each creature:
-// Size based on, Appearance based on
-vector<Creature> avail_creatures = {
-    Creature("Draconos", Diet::CARNIVORE, 4305, 395, 2500, 3, Biome::PLAINS), // Megalonyx, Glyptodon body + Entelodont facial features
-    Creature("Harlikir", Diet::HERBIVORE, 3800, 200, 1500, 2, Biome::TUNDRA), // Gaur, Barrel body + Bison-like Face
-    Creature("Grandis", Diet::CARNIVORE, 2435, 230, 1100, 4, Biome::DESERT), // Lythronax, Lythronax body plan + Garzapelta osteoderms
-    Creature("Carnagal", Diet::CARNIVORE, 4420, 500, 3000, 4, Biome::RAINFOREST), // Simbakubwa, more furry Simbakubwa
-    Creature("Flikch", Diet::HERBIVORE, 2310, 175, 700, 2, Biome::RAINFOREST), // Large Pig, Binturong + lemur tail.
-};
-
 class CreatureSelection : public Menu {
     private:
         vector<string> get_names(const vector<Creature>& c) {
@@ -513,7 +502,7 @@ class CreatureSelection : public Menu {
         vector<Creature> creatures;
         Player* playerPtr {};
     public:
-        CreatureSelection(bool r, vector<Creature> c, Player* plr) : Menu(r, get_names(avail_creatures)) {
+        CreatureSelection(bool r, vector<Creature> c, Player* plr) : Menu(r, get_names(c)) {
             creatures = c;
             playerPtr = plr;
         }
@@ -535,6 +524,16 @@ class SaveSelection : public Menu {
 
 class MainMenu : public Menu {
 
+};
+
+// For each creature:
+// Size based on, Appearance based on
+vector<Creature> avail_creatures = {
+    Creature("Draconos", Diet::CARNIVORE, 4305, 395, 2500, 3, Biome::PLAINS), // Megalonyx, Glyptodon body + Entelodont facial features
+    Creature("Harlikir", Diet::HERBIVORE, 3800, 200, 1500, 2, Biome::TUNDRA), // Gaur, Barrel body + Bison-like Face
+    Creature("Grandis", Diet::CARNIVORE, 2435, 230, 1100, 4, Biome::DESERT), // Lythronax, Lythronax body plan + Garzapelta osteoderms
+    Creature("Carnagal", Diet::CARNIVORE, 4420, 500, 3000, 4, Biome::RAINFOREST), // Simbakubwa, more furry Simbakubwa
+    Creature("Flikch", Diet::HERBIVORE, 2310, 175, 700, 2, Biome::RAINFOREST), // Large Pig, Binturong + lemur tail.
 };
 
 int main() {    
