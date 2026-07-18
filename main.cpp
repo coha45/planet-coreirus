@@ -3,7 +3,7 @@
 #include <vector>
 #include <utility>
 #include <unordered_map>
-#include <windows.h>
+#include <limits>
 using namespace std;
 
 void set_cursor_pos(int row, int col) {
@@ -71,26 +71,26 @@ struct Edible {
 // carnivores and herbivores for each biome.
 // ------------------------------------------------
 //  Edible Items for Carnivores
-Edible bony_fish { "Bony Fish", 3 };
-Edible carcass { "Carcass", 2 };
-Edible small_mammal { "Small Mammal", 5 }; // Placeholders for creatures that may fill similar niches.
-Edible small_reptile { "Small Reptile", 4 };
-Edible medium_reptile { "Medium Reptile", 8 };
-Edible dragon_fly { "Dragon Fly", 1 };
-Edible grasshopper { "Grasshopper", 1 };
-Edible scorpion { "Scorpion", 1 };
-Edible creature { "Creature", 0 }; // Special placeholder for when player encounters an NPC while hunting.
+const Edible bony_fish { "Bony Fish", 3 };
+const Edible carcass { "Carcass", 2 };
+const Edible small_mammal { "Small Mammal", 5 }; // Placeholders for creatures that may fill similar niches.
+const Edible small_reptile { "Small Reptile", 4 };
+const Edible medium_reptile { "Medium Reptile", 8 };
+const Edible dragon_fly { "Dragon Fly", 1 };
+const Edible grasshopper { "Grasshopper", 1 };
+const Edible scorpion { "Scorpion", 1 };
+const Edible creature { "Creature", 0 }; // Special placeholder for when player encounters an NPC while hunting.
 
 //  Edible Items for Herbivores
-Edible cactus { "Cactus", 1, 2 };
-Edible shrub { "Shrub", 2 };
-Edible fern { "Fern", 2 };
-Edible conifer { "Conifer", 2 };
-Edible grass { "Grass", 1 };
-Edible fruit { "Fruit", 4 };
-Edible seed { "Seed", 3 };
-Edible twig { "Twig", 1 };
-Edible berry { "Berry", 3 };
+const Edible cactus { "Cactus", 1, 2 };
+const Edible shrub { "Shrub", 2 };
+const Edible fern { "Fern", 2 };
+const Edible conifer { "Conifer", 2 };
+const Edible grass { "Grass", 1 };
+const Edible fruit { "Fruit", 4 };
+const Edible seed { "Seed", 3 };
+const Edible twig { "Twig", 1 };
+const Edible berry { "Berry", 3 };
 
 enum class Biome : uint8_t {
     RAINFOREST,
@@ -122,9 +122,6 @@ unordered_map<Biome, vector<Edible>> biome_edibles = {
     { Biome::TEMPERATE_FOREST, { conifer, twig, berry, small_reptile, small_mammal, carcass } },
     { Biome::PLAINS, { medium_reptile, small_mammal, carcass, dragon_fly, grasshopper, shrub, fern, grass, fruit, seed, twig, berry } },
 };
-
-
-
 
 // Temporary class to handle single-player biomes/location.
 // Handles player position + biome specific attributes.
@@ -395,6 +392,19 @@ class Player {
 class Loop {
     protected:
         bool running {};
+    private:
+        int handle_int_input() {
+            int i;
+            while (true) {
+                cout << ">> ";
+                cin >> i;
+
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                } else return i;
+            }
+        }
     public:
         Loop() = default;
         Loop(bool r) {
@@ -407,8 +417,7 @@ class Loop {
             if (!running) running = true;
             while(running) {
                 display_options();
-                cout << ">> ";
-                cin >> choice;
+                choice = handle_int_input();
                 process_options(choice);
             }
         }
@@ -460,7 +469,7 @@ class Game : public Loop {
                 case 5:
                     cout << "Unimplemented\n";
                     break;
-                default: cout << "Invalid Option.\n";
+                default: cout << "Invalid Option.\n"; break;
 
                 player->advance_round();
             }
